@@ -4,11 +4,11 @@ import * as yaml from 'js-yaml';
 import { nanoid } from 'nanoid';
 
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import { TRequestTemplateTypeKeys } from '@remnawave/backend-contract';
 
+import { TypedConfigService } from '@common/config/app-config';
 import { canParseJSON } from '@common/helpers/can-parse-json';
 import { AxiosService } from '@common/axios/axios.service';
 import { IGNORED_HEADERS } from '@common/constants';
@@ -32,19 +32,19 @@ export class RootService {
     private readonly mergeHostsPosition: string;
     private readonly appendTrafficLeft: boolean;
     constructor(
-        private readonly configService: ConfigService,
+        private readonly configService: TypedConfigService,
         private readonly jwtService: JwtService,
         private readonly axiosService: AxiosService,
         private readonly subpageConfigService: SubpageConfigService,
     ) {
-        this.isMarzbanLegacyLinkEnabled = this.configService.getOrThrow<boolean>(
+        this.isMarzbanLegacyLinkEnabled = this.configService.getOrThrow(
             'MARZBAN_LEGACY_LINK_ENABLED',
         );
-        this.mlDropRevokedSubscriptions = this.configService.getOrThrow<boolean>(
+        this.mlDropRevokedSubscriptions = this.configService.getOrThrow(
             'MARZBAN_LEGACY_DROP_REVOKED_SUBSCRIPTIONS',
         );
 
-        const marzbanSecretKeys = this.configService.get<string>('MARZBAN_LEGACY_SECRET_KEY');
+        const marzbanSecretKeys = this.configService.get('MARZBAN_LEGACY_SECRET_KEY');
 
         if (marzbanSecretKeys && marzbanSecretKeys.length > 0) {
             this.marzbanSecretKeys = marzbanSecretKeys.split(',').map((key) => key.trim());
@@ -52,18 +52,16 @@ export class RootService {
             this.marzbanSecretKeys = [];
         }
 
-        this.mergeMihomo = this.configService.getOrThrow<boolean>('MERGE_MIHOMO');
-        this.mergeMihomoProxyGroups = this.configService.getOrThrow<boolean>(
-            'MERGE_MIHOMO_PROXY_GROUPS',
-        );
-        this.mergeBase64 = this.configService.getOrThrow<boolean>('MERGE_BASE64');
-        this.mergeXrayHosts = this.configService.getOrThrow<boolean>('MERGE_XRAY_HOSTS');
-        this.mergeXrayOutbounds = this.configService.getOrThrow<boolean>('MERGE_XRAY_OUTBOUNDS');
-        this.overrideFingerprintPerOs = this.configService.getOrThrow<boolean>(
+        this.mergeMihomo = this.configService.getOrThrow('MERGE_MIHOMO');
+        this.mergeMihomoProxyGroups = this.configService.getOrThrow('MERGE_MIHOMO_PROXY_GROUPS');
+        this.mergeBase64 = this.configService.getOrThrow('MERGE_BASE64');
+        this.mergeXrayHosts = this.configService.getOrThrow('MERGE_XRAY_HOSTS');
+        this.mergeXrayOutbounds = this.configService.getOrThrow('MERGE_XRAY_OUTBOUNDS');
+        this.overrideFingerprintPerOs = this.configService.getOrThrow(
             'OVERRIDE_FINGERPRINT_PER_OS',
         );
-        this.mergeHostsPosition = this.configService.getOrThrow<string>('MERGE_HOSTS_POSITION');
-        this.appendTrafficLeft = this.configService.getOrThrow<boolean>('APPEND_TRAFFIC_LEFT');
+        this.mergeHostsPosition = this.configService.getOrThrow('MERGE_HOSTS_POSITION');
+        this.appendTrafficLeft = this.configService.getOrThrow('APPEND_TRAFFIC_LEFT');
     }
 
     public async serveSubscriptionPage(
@@ -1010,9 +1008,7 @@ export class RootService {
     }
 
     private checkSubscriptionValidity(createdAt: Date, username: string): boolean {
-        const validFrom = this.configService.get<string | undefined>(
-            'MARZBAN_LEGACY_SUBSCRIPTION_VALID_FROM',
-        );
+        const validFrom = this.configService.get('MARZBAN_LEGACY_SUBSCRIPTION_VALID_FROM');
 
         if (!validFrom) {
             return true;

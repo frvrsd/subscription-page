@@ -1,6 +1,6 @@
 {
   "name": "@ascella/subscription-page",
-  "version": "7.9.6",
+  "version": "7.9.7",
   "description": "Ascella Subscription Page",
   "private": false,
   "type": "commonjs",
@@ -27,8 +27,6 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@kastov/request-ip": "^0.0.5",
-    "@ladjs/consolidate": "^1.0.4",
     "@nestjs/axios": "4.0.1",
     "@nestjs/common": "11.1.17",
     "@nestjs/config": "4.0.3",
@@ -56,6 +54,7 @@
     "nest-winston": "^1.10.2",
     "nestjs-zod": "4.3.1",
     "pkg-types": "2.3.0",
+    "proxy-addr": "^2.0.7",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
     "semver": "^7.7.4",
@@ -71,6 +70,7 @@
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
+    "@types/ejs": "^3.1.5",
     "@types/express": "^5.0.6",
     "@types/js-yaml": "^4.0.9",
     "@types/jsonwebtoken": "^9.0.10",
@@ -78,6 +78,7 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^24.10.2",
     "@types/passport-http": "^0.3.11",
+    "@types/proxy-addr": "^2.0.3",
     "@types/semver": "^7.7.1",
     "@typescript-eslint/eslint-plugin": "^8.49.0",
     "@typescript-eslint/parser": "^8.49.0",

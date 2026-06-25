@@ -6,11 +6,11 @@ import axios, {
     AxiosResponseHeaders,
     RawAxiosResponseHeaders,
 } from 'axios';
+import { readPackageJSON } from 'pkg-types';
 import { exit } from 'node:process';
 import { table } from 'table';
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
 import {
     GetMetadataCommand,
@@ -25,37 +25,39 @@ import {
     TRequestTemplateTypeKeys,
 } from '@remnawave/backend-contract';
 
+import { TypedConfigService } from '@common/config/app-config';
 import { IGNORED_HEADERS } from '@common/constants';
 
 import { ICommandResponse } from '../types/command-response.type';
 
 @Injectable()
 export class AxiosService implements OnModuleInit {
-    public axiosInstance: AxiosInstance;
     private readonly logger = new Logger(AxiosService.name);
+    private subpageVersion: string;
 
-    constructor(private readonly configService: ConfigService) {
+    public axiosInstance: AxiosInstance;
+
+    constructor(private readonly configService: TypedConfigService) {
         this.axiosInstance = axios.create({
             baseURL: this.configService.getOrThrow('REMNAWAVE_PANEL_URL'),
             timeout: 10_000,
             headers: {
                 'user-agent': 'Ascella Subscription Page',
+                'x-subpage-version': this.subpageVersion,
                 Authorization: `Bearer ${this.configService.getOrThrow('REMNAWAVE_API_TOKEN')}`,
             },
         });
 
-        const caddyAuthApiToken = this.configService.get<string | undefined>(
-            'CADDY_AUTH_API_TOKEN',
-        );
+        const caddyAuthApiToken = this.configService.get('CADDY_AUTH_API_TOKEN');
 
-        const cloudflareZeroTrustClientId = this.configService.get<string | undefined>(
+        const cloudflareZeroTrustClientId = this.configService.get(
             'CLOUDFLARE_ZERO_TRUST_CLIENT_ID',
         );
-        const cloudflareZeroTrustClientSecret = this.configService.get<string | undefined>(
+        const cloudflareZeroTrustClientSecret = this.configService.get(
             'CLOUDFLARE_ZERO_TRUST_CLIENT_SECRET',
         );
 
-        const egamesCookie = this.configService.get<string | undefined>('EGAMES_COOKIE');
+        const egamesCookie = this.configService.get('EGAMES_COOKIE');
 
         if (caddyAuthApiToken) {
             this.axiosInstance.defaults.headers.common['X-Api-Key'] = caddyAuthApiToken;
@@ -79,6 +81,12 @@ export class AxiosService implements OnModuleInit {
     }
 
     async onModuleInit(): Promise<void> {
+        const pkg = await readPackageJSON();
+
+        this.subpageVersion = pkg.version!;
+
+        this.axiosInstance.defaults.headers.common['x-subpage-version'] = this.subpageVersion;
+
         this.logger.log(`Remnawave API URL: ${this.axiosInstance.defaults.baseURL}`);
 
         const remnawaveMetadata = await this.getRemnawaveMetadata();
@@ -314,6 +322,7 @@ export class AxiosService implements OnModuleInit {
                     Pragma: 'no-cache',
                     Expires: '0',
                     [REMNAWAVE_REAL_IP_HEADER]: clientIp,
+                    Authorization: undefined,
                 },
             });
 

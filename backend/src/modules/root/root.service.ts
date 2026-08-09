@@ -362,9 +362,18 @@ export class RootService {
         const resolveResult = await this.axiosService.resolveUser({ shortUuid });
         if (!resolveResult.isOk || !resolveResult.response) return response;
 
-        const userUuid = resolveResult.response.response.id ?? resolveResult.response.response.uuid;
+        /**
+         * Panel v3 dropped `uuid` from the user object and keys metadata by the
+         * numeric `id`; 2.x panels still key it by uuid and return both fields.
+         * Prefer uuid, fall back to id, so both panel generations work.
+         */
+        const resolvedUser = resolveResult.response.response as {
+            id: number;
+            uuid?: string;
+        };
+        const userId = resolvedUser.uuid ?? String(resolvedUser.id);
 
-        const metadataResult = await this.axiosService.getUserMetadata(userUuid);
+        const metadataResult = await this.axiosService.getUserMetadata(userId);
         if (!metadataResult.isOk || !metadataResult.response) return response;
 
         this.logger.log(`Metadata: ${JSON.stringify(metadataResult.response.response.metadata)}`);

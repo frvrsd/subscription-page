@@ -362,7 +362,7 @@ export class RootService {
         const resolveResult = await this.axiosService.resolveUser({ shortUuid });
         if (!resolveResult.isOk || !resolveResult.response) return response;
 
-        const userUuid = resolveResult.response.response.uuid;
+        const userUuid = resolveResult.response.response.id ?? resolveResult.response.response.uuid;
 
         const metadataResult = await this.axiosService.getUserMetadata(userUuid);
         if (!metadataResult.isOk || !metadataResult.response) return response;

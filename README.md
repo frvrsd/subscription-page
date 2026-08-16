@@ -1,43 +1,118 @@
-## Ascella Subscription Page
+# Subscription Page
 
-Learn more about Remnawave [here](https://remna.st/).
+Кастомная subscription page для [Remnawave](https://remna.st/) — страница подписки и выдача конфигов клиентам.
 
-### Merging linked subscriptions
+Форк с доработками: мерж связанных подписок, русский формат трафика в remarks, CI → Docker Hub.
 
-Linked subscriptions are defined in the user's metadata (`linked_subs`). Their proxies/hosts are merged into the main subscription depending on its format.
+## Быстрый старт
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `MERGE_MIHOMO` | `false` | Merge linked subscriptions into Mihomo/Clash (YAML) configs — injects into the `proxies` array and inline `proxy-providers` payloads. |
-| `MERGE_MIHOMO_PROXY_GROUPS` | `false` | Also append merged proxy names into `proxy-groups` (requires `MERGE_MIHOMO=true`). |
-| `MERGE_BASE64` | `false` | Merge linked subscriptions for base64-encoded proxy lists. |
-| `MERGE_XRAY_HOSTS` | `false` | Merge full host configs from linked subscriptions into the Xray JSON array. |
-| `MERGE_XRAY_OUTBOUNDS` | `false` | Inject outbounds from linked subscriptions into each config of the Xray JSON array (deduplicated by tag). |
-| `MERGE_HOSTS_POSITION` | `end` | Where to insert merged linked hosts: `start`, `upper_middle`, `middle` or `end`. |
+1. Скопируй `.env.sample` → `.env` и заполни минимум:
 
-### Display tweaks
+```env
+REMNAWAVE_PANEL_URL=https://your-panel.example.com
+REMNAWAVE_API_TOKEN=your_api_token
+```
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `OVERRIDE_FINGERPRINT_PER_OS` | `false` | Override the Reality `fingerprint` in Xray outbounds and `vless://` links based on the client OS (detected via the `x-device-os` header, then the User-Agent; falls back to `firefox`). |
-| `APPEND_TRAFFIC_LEFT` | `false` | Append the `traffic-left` response header value (from each linked subscription) to merged host remarks, converted to Russian units (`Гб`, `Мб`, …). Skipped when the header is absent. |
+2. Запуск из готового образа:
 
-### Docker image (GitHub Actions)
+```bash
+docker compose -f docker-compose-prod.yml up -d
+```
 
-Workflows build the image and push to Docker Hub under your GitHub-linked Hub account
-(`github.repository_owner`, for this repo: `frvrsd`).
+Образ: `frvrsd/subscription-page:latest` (переопределяется через `DOCKERHUB_USERNAME` в `.env`).
 
-Required repository secret:
+Сервис слушает `127.0.0.1:3010`. Сеть `remnawave-network` должна уже существовать (как у панели).
 
-| Secret | Description |
+### Сборка локально
+
+```bash
+# frontend
+cd frontend && npm ci && npm run start:build && cd ..
+
+# образ
+docker compose up -d --build
+```
+
+## Конфигурация
+
+### Обязательные
+
+| Переменная | Описание |
 | --- | --- |
-| `DOCKERHUB_TOKEN` | Docker Hub [access token](https://hub.docker.com/settings/security) (Read/Write/Delete) |
+| `REMNAWAVE_PANEL_URL` | URL панели (`http://remnawave:3000` или публичный HTTPS) |
+| `REMNAWAVE_API_TOKEN` | API token из Remnawave → Settings → API Tokens |
+| `APP_PORT` | Порт приложения (по умолчанию `3010`) |
 
-Optional: `DOCKERHUB_USERNAME` — only if Hub username differs from the GitHub owner.
+### Прокси и путь
 
-- Tag push → `frvrsd/subscription-page:latest` and `:${tag}`
-- Push to `dev` → `frvrsd/subscription-page:dev`
+| Переменная | Default | Описание |
+| --- | --- | --- |
+| `CUSTOM_SUB_PREFIX` | _(пусто)_ | Префикс пути без `/` по краям (например `sub`) |
+| `TRUST_PROXY` | `1` | Express `trust proxy` — сколько hop’ов доверять для реального IP |
+| `CADDY_AUTH_API_TOKEN` | | `X-Api-Key` к панели (Caddy Security / Tiny Auth) |
+| `CLOUDFLARE_ZERO_TRUST_CLIENT_ID` / `_SECRET` | | Cloudflare Zero Trust к панели |
 
-# Contributors
+### Мерж связанных подписок (`linked_subs` в metadata)
 
-Check [open issues](https://github.com/frvrsd/subscription-page/issues) to help the progress of this project.
+| Переменная | Default | Описание |
+| --- | --- | --- |
+| `MERGE_MIHOMO` | `false` | Мерж в Mihomo/Clash YAML (`proxies` + inline `proxy-providers`) |
+| `MERGE_MIHOMO_PROXY_GROUPS` | `false` | Также добавить имена в `proxy-groups` (нужен `MERGE_MIHOMO`) |
+| `MERGE_BASE64` | `false` | Мерж base64-списков прокси |
+| `MERGE_XRAY_HOSTS` | `false` | Мерж host-конфигов в Xray JSON-массив |
+| `MERGE_XRAY_OUTBOUNDS` | `false` | Инжект outbounds в каждый Xray-конфиг (дедуп по `tag`) |
+| `MERGE_HOSTS_POSITION` | `end` | Куда вставлять: `start` · `upper_middle` · `middle` · `end` |
+
+### Трафик и fingerprint
+
+| Переменная | Default | Описание |
+| --- | --- | --- |
+| `APPEND_TRAFFIC_LEFT` | `false` | Дописать значение header `traffic-left` к remarks связанных хостов. Единицы → русские (`Гб`, `Мб`, …); unlimited → `- ∞ | ∞` |
+| `OVERRIDE_FINGERPRINT_PER_OS` | `false` | Reality `fingerprint` по OS клиента (`x-device-os` / User-Agent, fallback `firefox`) |
+
+**Пример header в панели Remnawave:**
+
+```text
+traffic-left = - {{TRAFFIC_LEFT}} | {{TOTAL_TRAFFIC}}
+```
+
+В remark уйдёт, например: `- 12.5 Гб | 100 Гб` или `- ∞ | ∞`.
+
+### Marzban legacy
+
+| Переменная | Default | Описание |
+| --- | --- | --- |
+| `MARZBAN_LEGACY_LINK_ENABLED` | `false` | Поддержка старых Marzban-ссылок |
+| `MARZBAN_LEGACY_SECRET_KEY` | | Секрет(ы) Marzban |
+| `MARZBAN_LEGACY_SUBSCRIPTION_VALID_FROM` | | ISO-дата, с которой считать подписки валидными |
+
+Полный список — в [`.env.sample`](.env.sample).
+
+## Docker Hub / CI
+
+GitHub Actions собирают образ и пушат в Docker Hub от имени owner репозитория (`frvrsd`).
+
+| Триггер | Теги |
+| --- | --- |
+| Push тега | `frvrsd/subscription-page:latest`, `:${tag}` (amd64 + arm64) |
+| Push в `dev` | `frvrsd/subscription-page:dev`, `:${sha}` |
+
+**Secret в GitHub** (Settings → Secrets and variables → Actions → **New repository secret**):
+
+| Name | Value |
+| --- | --- |
+| `DOCKERHUB_TOKEN` | [Access Token](https://hub.docker.com/settings/security) с правами Read/Write/Delete |
+
+Опционально `DOCKERHUB_USERNAME`, если логин на Hub отличается от GitHub owner.
+
+## Стек
+
+- Backend: NestJS
+- Frontend: React + Vite + Mantine
+- Runtime: Node + PM2 в Docker
+
+## Лицензия
+
+AGPL-3.0 — см. [`LICENCE`](LICENCE).
+
+Документация Remnawave: [docs.rw](https://docs.rw) · [remna.st](https://remna.st/)

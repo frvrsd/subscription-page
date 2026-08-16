@@ -1,8 +1,8 @@
 services:
-  ascella-subscription-page:
-    image: ascellanetwork/subscription-page:latest
-    container_name: ascella-subscription-page
-    hostname: ascella-subscription-page
+  subscription-page:
+    image: ${DOCKERHUB_USERNAME:-frvrsd}/subscription-page:latest
+    container_name: subscription-page
+    hostname: subscription-page
     restart: unless-stopped
     env_file:
       - .env

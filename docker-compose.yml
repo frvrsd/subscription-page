@@ -1,5 +1,5 @@
 services:
-  ascella-subscription-page:
+  subscription-page:
     build:
       context: .
       dockerfile: Dockerfile

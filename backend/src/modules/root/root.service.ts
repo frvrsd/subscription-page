@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { TRequestTemplateTypeKeys } from '@remnawave/backend-contract';
 
 import { TypedConfigService } from '@common/config/app-config';
+import { toRussianTrafficLabel } from '@common/helpers/convert-bytes';
 import { canParseJSON } from '@common/helpers/can-parse-json';
 import { AxiosService } from '@common/axios/axios.service';
 import { IGNORED_HEADERS } from '@common/constants';
@@ -639,8 +640,11 @@ export class RootService {
 
     /**
      * Returns the formatted traffic-left suffix (with a leading space) from the
-     * traffic-left header, or null when the feature is disabled, the header is empty,
-     * or the value is zero (treated as unlimited).
+     * traffic-left header, or null when the feature is disabled / header is empty.
+     * Units are shown in Russian (Гб, Мб, …). Unlimited plans → `- ∞ | ∞`.
+     *
+     * Typical Remnawave header template:
+     *   `- {{TRAFFIC_LEFT}} | {{TOTAL_TRAFFIC}}` → `- 12.5 GiB | 100 GiB` → `- 12.5 Гб | 100 Гб`
      */
     private getTrafficLeftSuffix(headers: Record<string, unknown> | undefined): string | null {
         if (!this.appendTrafficLeft || !headers) return null;
@@ -649,10 +653,7 @@ export class RootService {
         const value = Array.isArray(raw) ? raw[0] : raw;
         if (typeof value !== 'string' || value.trim().length === 0) return null;
 
-        const numeric = parseFloat(value.replace(',', '.'));
-        if (numeric === 0) return null;
-
-        return ` ${value.trim()}`;
+        return ` ${toRussianTrafficLabel(value)}`;
     }
 
     /** Appends the suffix to the URL-encoded #fragment (remark) of a proxy link. */
